@@ -14,5 +14,5 @@ menu:
 comments: false
 ---
 
-Here is some awesome projects:
+Here are my fantastic projects:
 

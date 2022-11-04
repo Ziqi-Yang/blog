@@ -46,9 +46,6 @@ jobs:
             - name: Build
               run: hugo --minify --gc
 
-            - name: list public folder
-              run: ls ./public
-
             - name: Deploy 🚀
               uses: JamesIves/github-pages-deploy-action@4.1.4
               with:
