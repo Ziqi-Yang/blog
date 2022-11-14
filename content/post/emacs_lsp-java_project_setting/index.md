@@ -7,6 +7,7 @@ categories:
     - emacs
 tags:
     - emacs
+    - doom emacs
 ---
 
 `lsp-java` is an awesome package for `lsp-mode` to open a java proect. However, after some testing, I found it 
