@@ -1,6 +1,6 @@
 ---
-title: Emacs
-description: Hack into Emacs!
+title: Shell
+description: Fantastic shell tips!
 image:
 
 # Badge style

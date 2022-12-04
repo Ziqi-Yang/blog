@@ -12,5 +12,6 @@ tags:
 ```elisp
 (setq 
   doom-font (font-spec :family "FiraCode Nerd Font" :size 34) ;; :wight light
-  doom-unicode-font (font-spec :family "LXGW WenKai" :size 34))
+    ;; don't set size for doom-unicode-font, or the size won't be changed
+    doom-unicode-font (font-spec :family "LXGW WenKai")) ;; CJK font
 ```
