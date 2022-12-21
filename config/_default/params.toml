@@ -5,7 +5,7 @@ rssFullContent = true
 favicon="/blog/favicon.ico"
 
 [footer]
-since = 2020
+since = 2022
 customText = "Hacking to the Gate!"
 
 [dateFormat]
@@ -75,8 +75,8 @@ enabled = true
 
 ## Comments
 [comments]
-enabled = false
-provider = "disqus"
+enabled = true
+provider = "gitalk"
 
 [comments.disqusjs]
 shortname = ""
@@ -137,12 +137,13 @@ darkTheme = ""
 reactionsEnabled = 1
 emitMetadata = 0
 
+# plz don't use your creativity on bad things 6ᯅ9
 [comments.gitalk]
-owner = ""
-admin = ""
-repo = ""
-clientID = ""
-clientSecret = ""
+owner = "Ziqi-Yang"
+admin = "Ziqi-Yang"
+repo = "blog"
+clientID = "a93c2dcbf381261b9c79"
+clientSecret = "e2396961639739ad1e1c3844d03d0b2372073c0b"
 
 [comments.cusdis]
 host = ""
