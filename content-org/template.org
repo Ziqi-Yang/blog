@@ -1,0 +1,9 @@
+#+title: Template
+#+date:  <SPC-m-d-t> to insert date
+#+hugo_base_dir: ../
+#+hugo_categories: emacs
+#+hugo_tags: emacs doom-emacs
+#+description: Create a java project with third libriaries support
+
+* Section 1
+This is my post body
