@@ -15,10 +15,10 @@ url = "https://github.com/Ziqi-Yang"
 [social.params]
 icon = "brand-github"
 
-# [[social]]
-# identifier = "twitter"
-# name = "Twitter"
-# url = "https://twitter.com"
-#
-# [social.params]
-# icon = "brand-twitter"
+[[social]]
+identifier = "rss"
+name = "Rss"
+url = "posts/index.xml"
+
+[social.params]
+icon = "rss"
