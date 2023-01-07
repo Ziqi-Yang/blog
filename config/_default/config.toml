@@ -1,5 +1,5 @@
 # Change baseurl before deplohttps://ziqi-yang.github.io/blog/y
-baseurl = "https://ziqi-yang.github.io/blog"
+baseurl = "https://blog.animer.live/"
 languageCode = "en-us"
 paginate = 5
 title = "Hugo Theme Stack Starter"

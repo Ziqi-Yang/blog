@@ -6,5 +6,9 @@
 #+hugo_tags: emacs doom-emacs
 #+description: Create a java project with third libriaries support
 
-* Section 1
+* Export Short Key
 Use =SPC-m-e-H-h= to export blog.
+
+* Current Writing
+- [ ] Hide Secrets In Your Dotfiles
+- [ ] Read Baby Git Source Code

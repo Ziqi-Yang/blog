@@ -21,6 +21,7 @@ paru -S dunst wireplumber pipewire polkit-kde-agent xdg-desktop-portal-hyprland-
 
 paru -S wev # xev
 paru -S wl-clipboard # xclip
+paru -S wtype # xdotool
 ```
 
 

@@ -1,0 +1,10 @@
+#+title: Read Baby Git Source Code
+#+date:  <2023-01-05 Thu>
+#+hugo_lastmod:
+#+hugo_base_dir: ../
+#+hugo_categories: read-code
+#+hugo_tags: read-code git
+#+description: I find a well-commented git source code(based on Linus Torvalds first commit version) on the Internet, which is named baby-git by the commenter. It is really nice for those people who want to contribute to the real git project(including me).
+
+* Section 1
+Use =SPC-m-e-H-h= to export blog.
