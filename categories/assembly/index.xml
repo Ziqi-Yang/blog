@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Assembly on MeowKing</title><link>https://blog.animer.live/categories/assembly/</link><description>Recent content in Assembly on MeowKing</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 04 Jan 2023 00:00:00 +0800</lastBuildDate><atom:link href="https://blog.animer.live/categories/assembly/index.xml" rel="self" type="application/rss+xml"/><item><title>Risc-V Learning Summary</title><link>https://blog.animer.live/posts/risc-v-learning-summary/</link><pubDate>Wed, 04 Jan 2023 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/risc-v-learning-summary/</guid><description>&lt;p>Recently, I self-learned the &lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/su20/#by-week" target="_blank" rel="noopener"
+>cs61c(su20)&lt;/a> class, which requires you to write a &lt;code>risc-v&lt;/code> program to make a simple neural network in the project 2. It could be annoying that you write some bug in the assembly since the debug condition is frustrating. After all, through the project I learned a lot about risc-v, especially the calling conventions(at the beginning I haven&amp;rsquo;t paid much attention to it, and it had really caused a lot of problems to my work). After all, I summarized some things that seem important to risc-v assembly coding.&lt;/p>
+&lt;h2 id="calling-conventions">Calling Conventions&lt;/h2>
+&lt;p>It is very important to assembly coding. To make things work properly, you should follow calling conventions, especially when your project grows bigger and bigger.&lt;/p>
+&lt;h3 id="the-caller-s-responsibility">The Caller&amp;rsquo;s Responsibility&lt;/h3>
+&lt;p>The caller should manage its temporary variables like &lt;code>t0&lt;/code>, &lt;code>a0&lt;/code> and &lt;code>ra&lt;/code>. Since these variables are used for temporary purposes and in many cases many temporary variables are randomly used, the callee have no responsibility to save the caller&amp;rsquo;s temporary variables, which makes variable management easy.&lt;br />
+When the caller calls a function, make sure you have stored those temporary variables which carries information through the processes. The following demo demonstrates the principle:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># condition: the special value &amp;#39;1&amp;#39; needed to be used after calling a function
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">## good example
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">li&lt;/span> &lt;span class="no">t0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">mv&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">t0&lt;/span> &lt;span class="c1"># save t0 to s1, or save it to the stack
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">jal&lt;/span> &lt;span class="no">function&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># use s1
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">## bad example
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">li&lt;/span> &lt;span class="no">t0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">jal&lt;/span> &lt;span class="no">function&lt;/span> &lt;span class="c1"># may change t0
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># use t0
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="the-callee-s-responsibility">The Callee&amp;rsquo;s Responsibility&lt;/h3>
+&lt;p>The callee should save the long-life variables(like &lt;code>s0&lt;/code>) before doing its work, and revert them after the work before return. &lt;br />
+However, there are many long-life variables(12 variables&amp;rsquo; name begins with the character &amp;rsquo;s&amp;rsquo;), should we save all of them? Absolutely no. You only need to save those variables that will be used in the following callee&amp;rsquo;s work. For example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="nl">function:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">addi&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="p">-&lt;/span>&lt;span class="mi">12&lt;/span> &lt;span class="c1"># you can write the size in the final cause sometimes you need to use
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1"># more long-life variables than you decided at the beginning
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">sw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">sw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">sw&lt;/span> &lt;span class="no">ra&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1"># usually save ra along with s-variables is a good practice
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># your work
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">ra&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1"># usually save ra along with s-variables is a good practice
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">addi&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">12&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="multiple-file-example">Multiple File Example&lt;/h2>
+&lt;p>&lt;code>main&lt;/code> file&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="na">.import&lt;/span> &lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">src&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">write_matrix.s&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.import&lt;/span> &lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">src&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">utils.s&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">m0:&lt;/span> &lt;span class="na">.word&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">6&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">7&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">9&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">file_path:&lt;/span> &lt;span class="na">.asciiz&lt;/span> &lt;span class="s">&amp;#34;outputs/test_write_matrix/student_write_outputs.bin&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.text&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">main:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">la&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">m0&lt;/span> &lt;span class="c1"># poiner to int array
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">la&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">file_path&lt;/span> &lt;span class="c1"># string
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>function&lt;/code> file&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#define c_printHex 34
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># ecall wrappers
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="na">.globl&lt;/span> &lt;span class="no">print_int&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_str&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">atoi&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sbrk&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">exit&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_char&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fopen&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fread&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fwrite&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fclose&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">exit2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fflush&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">ferror&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_hex&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># helper functions
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="na">.globl&lt;/span> &lt;span class="no">file_error&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_int_array&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">malloc&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">free&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_num_alloc_blocks&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">num_alloc_blocks&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">error_string:&lt;/span> &lt;span class="na">.string&lt;/span> &lt;span class="s">&amp;#34;This library file should not be directly called!&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.text&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Exits if you run this file
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nl">main:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">la&lt;/span> &lt;span class="no">a1&lt;/span> &lt;span class="no">error_string&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">jal&lt;/span> &lt;span class="no">print_str&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">li&lt;/span> &lt;span class="no">a1&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">jal&lt;/span> &lt;span class="no">exit2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">print_int:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">print_char:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>It should be noticed that the exposing function(label) only exposed its label name and address (my understanding), and its end is the &lt;code>ret&lt;/code>, however the compiler doesn&amp;rsquo;t know where its end is.&lt;/p>
+&lt;h2 id="pass-command-line-arguments-to-the-program">Pass Command Line Arguments to the Program&lt;/h2>
+&lt;p>If you don&amp;rsquo;t change a-beginning variables at the beginning, then &lt;code>a0&lt;/code> is &lt;code>argc&lt;/code> (&lt;code>int&lt;/code> type), and &lt;code>a1&lt;/code> is &lt;code>argv&lt;/code> (&lt;code>char **&lt;/code> type). RISC-V handles command line arguments in the same way as C, which means &lt;code>a1[0]&lt;/code> is the program itself. You can load command line arguments like this:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># a1: char **, and char * is address, costs for 4 bytes
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 0(a1) stands for the program itself
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">lw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">12&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">16&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="ecall-the-environmental-calls">Ecall - The Environmental Calls&lt;/h2>
+&lt;p>You can refer to &lt;a class="link" href="https://github.com/kvakil/venus/wiki/Environmental-Calls" target="_blank" rel="noopener"
+>venus - Environmental Call&lt;/a>. The starter code for the project2 is also a good example: &lt;a class="link" href="https://github.com/61c-teach/su20-proj2-starter/blob/master/src/utils.s" target="_blank" rel="noopener"
+>https://github.com/61c-teach/su20-proj2-starter/blob/master/src/utils.s&lt;/a>&lt;/p>
+&lt;h2 id="resources">Resources&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources-pdfs/riscvcard.pdf" target="_blank" rel="noopener"
+>resc-v reference&lt;/a> and &lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources-pdfs/riscvcard_large.pdf" target="_blank" rel="noopener"
+>large version&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://jemu.oscc.cc/" target="_blank" rel="noopener"
+>unoffical risc-v manual&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://github.com/kvakil/venus/wiki" target="_blank" rel="noopener"
+>venus wiki&lt;/a> &lt;br />
+it contains useful information like &lt;code>Assembler Directives&lt;/code> and &lt;code>Environmental Calls&lt;/code>&lt;/li>
+&lt;li>&lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources/venus-reference" target="_blank" rel="noopener"
+>cs61c venus reference&lt;/a> mainly about &lt;code>venus&lt;/code> tool, but also contains some RISC-V knowledge&lt;/li>
+&lt;/ul></description></item></channel></rss>

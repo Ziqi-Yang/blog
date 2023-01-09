@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>doom emacs on MeowKing</title><link>https://blog.animer.live/tags/doom-emacs/</link><description>Recent content in doom emacs on MeowKing</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 21 Dec 2022 00:00:00 +0800</lastBuildDate><atom:link href="https://blog.animer.live/tags/doom-emacs/index.xml" rel="self" type="application/rss+xml"/><item><title>Emacs lsp-java Project Settings</title><link>https://blog.animer.live/posts/emacs-lsp-java-project-settings/</link><pubDate>Wed, 21 Dec 2022 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/emacs-lsp-java-project-settings/</guid><description>&lt;p>&lt;code>lsp-java&lt;/code> is an awesome package for &lt;code>lsp-mode&lt;/code> to open a java project. However, after some testing, I found it
+has difficulty in importing third party libraries with &lt;span class="underline">pure&lt;/span> java project(not use maven, Gradle). Moreover, it
+only has a limited ability to interact with a Gradle project. However, it has great support for &lt;code>maven&lt;/code> project, which
+means we can use maven to import third party java libraries.
+This article will focus on import a local library by maven.&lt;/p>
+&lt;h2 id="initialize-a-project">Initialize a project&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mvn -B archetype:generate -DgroupId&lt;span class="o">=&lt;/span>PacMan -DartifactId&lt;span class="o">=&lt;/span>PacMan -Darchet
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ypeArtifactId&lt;/span>&lt;span class="o">=&lt;/span>maven-archetype-quickstart -DarchetypeVersion&lt;span class="o">=&lt;/span>1.4
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This command will create a folder named &lt;code>PacMan=(=artifactId&lt;/code>), where there is folder called &lt;code>src&lt;/code>, and its structure is like:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-mysql" data-lang="mysql">&lt;span class="line">&lt;span class="cl">&lt;span class="err">├──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">src&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">├──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">main&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">└──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">java&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">└──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nf">PacMan&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">groudId&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If your &lt;code>groupId&lt;/code> is &amp;ldquo;com.pacman.xx&amp;rdquo;, then the directory structure may be like:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">├── src
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   ├── main
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   │   └── java
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   │   └── com
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> └── pacman
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> └── xx
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>In our example, you can write code in the &lt;code>pacman&lt;/code> folder.&lt;/p>
+&lt;h2 id="specify-java-version">Specify java version:&lt;/h2>
+&lt;p>edit &lt;code>pom.xml&lt;/code> file in the project root directory&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;project&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;http://maven.apache.org/POM/4.0.0&amp;#34;&lt;/span> &lt;span class="na">xmlns:xsi=&lt;/span>&lt;span class="s">&amp;#34;http://www.w3.org/2001/XMLSchema-instance&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">xsi:schemaLocation=&lt;/span>&lt;span class="s">&amp;#34;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- ... --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;properties&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;project.build.sourceEncoding&amp;gt;&lt;/span>UTF-8&lt;span class="nt">&amp;lt;/project.build.sourceEncoding&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;maven.compiler.source&amp;gt;&lt;/span>17&lt;span class="nt">&amp;lt;/maven.compiler.source&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;maven.compiler.target&amp;gt;&lt;/span>17&lt;span class="nt">&amp;lt;/maven.compiler.target&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/properties&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- ... --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/project&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="add-third-party-libriary">Add third party libriary&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&amp;lt;project &lt;span class="nv">xmlns&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://maven.apache.org/POM/4.0.0&amp;#34;&lt;/span> xmlns:xsi&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://www.w3.org/2001/XMLSchema-instance&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> xsi:schemaLocation&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd&amp;#34;&lt;/span>&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;dependencies&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;dependency&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;groupId&amp;gt;ucd.comp2011j&amp;lt;/groupId&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;artifactId&amp;gt;game-engine&amp;lt;/artifactId&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;version&amp;gt;1.00&amp;lt;/version&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;scope&amp;gt;system&amp;lt;/scope&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;systemPath&amp;gt;&lt;span class="si">${&lt;/span>&lt;span class="nv">basedir&lt;/span>&lt;span class="si">}&lt;/span>/libs/COMP2011J.Game.Engine.jar&amp;lt;/systemPath&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;/dependency&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;/dependencies&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;/project&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Note that &lt;code>${basedir}&lt;/code> stands for the directory that &lt;code>pom.xml&lt;/code> located.&lt;/p>
+&lt;h2 id="run-project">Run Project:&lt;/h2>
+&lt;p>create a &lt;code>Makefile&lt;/code> in the project root directory:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-makefile" data-lang="makefile">&lt;span class="line">&lt;span class="cl">&lt;span class="nf">all&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">compile&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">compile&lt;/span>&lt;span class="o">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> mvn package
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> java -cp &lt;span class="s2">&amp;#34;target/PacMan-1.0-SNAPSHOT.jar:&amp;lt;your third party libriary relative path&amp;gt;&amp;#34;&lt;/span> PacMan.GameStart &lt;span class="c1"># &amp;lt;Package Name&amp;gt;.&amp;lt;Class Name&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">clean&lt;/span>&lt;span class="o">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> mvn clean
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Use command &lt;code>make&lt;/code> to run, and &lt;code>make clean&lt;/code> to clean&lt;/p>
+&lt;p>In &lt;code>doom emacs&lt;/code>, you can type &lt;code>&amp;lt;SPC&amp;gt;pR&lt;/code> and enter &lt;code>make&lt;/code> to run the project&lt;/p></description></item><item><title>Doom Emacs Set Chinese Font</title><link>https://blog.animer.live/posts/doom_emacs_chinese_font/</link><pubDate>Mon, 14 Nov 2022 00:00:00 +0000</pubDate><guid>https://blog.animer.live/posts/doom_emacs_chinese_font/</guid><description>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-elisp" data-lang="elisp">&lt;span class="line">&lt;span class="cl">&lt;span class="p">(&lt;/span>&lt;span class="nb">setq&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nv">doom-font&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nf">font-spec&lt;/span> &lt;span class="nb">:family&lt;/span> &lt;span class="s">&amp;#34;FiraCode Nerd Font&amp;#34;&lt;/span> &lt;span class="nb">:size&lt;/span> &lt;span class="mi">34&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">;; :wight light&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">;; don&amp;#39;t set size for doom-unicode-font, or the size won&amp;#39;t be changed&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nv">doom-unicode-font&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nf">font-spec&lt;/span> &lt;span class="nb">:family&lt;/span> &lt;span class="s">&amp;#34;LXGW WenKai&amp;#34;&lt;/span>&lt;span class="p">))&lt;/span> &lt;span class="c1">;; CJK font&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item></channel></rss>

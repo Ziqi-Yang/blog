@@ -1,0 +1,670 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>MeowKing</title><link>https://blog.animer.live/</link><description>Recent content on MeowKing</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Mon, 09 Jan 2023 00:00:00 +0800</lastBuildDate><atom:link href="https://blog.animer.live/index.xml" rel="self" type="application/rss+xml"/><item><title>AUR Contribution Guide</title><link>https://blog.animer.live/posts/aur_contribution_guide/</link><pubDate>Mon, 09 Jan 2023 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/aur_contribution_guide/</guid><description>&lt;ul>
+&lt;li>&lt;a class="link" href="https://wiki.archlinux.org/title/Category:Package_development" target="_blank" rel="noopener"
+>Category:Package development - ArchWiki&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://madskjeldgaard.dk/posts/aur-package-workflow/" target="_blank" rel="noopener"
+>Notes on creating packages for the Arch User Repository (AUR)&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>Hide Secrets in Your Dot Files on Public Repository</title><link>https://blog.animer.live/posts/hide-secrets-in-your-dotfile/</link><pubDate>Mon, 09 Jan 2023 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/hide-secrets-in-your-dotfile/</guid><description>&lt;p>I am using &lt;a class="link" href="https://github.com/deadc0de6/dotdrop" target="_blank" rel="noopener"
+>dotdrop&lt;/a> to manage my dot files. If you don&amp;rsquo;t use it, it&amp;rsquo;s fine, but you may need to do a some extra work to make things done. For those who manually copy and paste their dot files, I highly recommend you to try it out. It can automate your copy-paste flow, and it is highly customizable. It can save you a lot of time dealing with chores. (Nix OS users should ignore what I said)&lt;/p>
+&lt;p>The conditions can be divided into two:&lt;/p>
+&lt;ol>
+&lt;li>Secrets are only some small pieces of code in your dot files. For example, you write a web spider to collect your personal information on a website, but the script file contains your cookie. It can be annoying that you want to share your code and protect your privacy at the same time while using the current dot file automatic workflow. You are in an awkward position.&lt;/li>
+&lt;li>Secrets are individual files.&lt;/li>
+&lt;/ol>
+&lt;p>The problem can be solved with &lt;code>encryption&lt;/code> technology. We will use &lt;code>gpg&lt;/code> to encrypt secrets. For those who haven&amp;rsquo;t set their &lt;code>gpg keys&lt;/code>, I recommend them to read through &lt;a class="link" href="https://wiki.archlinux.org/title/GnuPG" target="_blank" rel="noopener"
+>GnuPG - ArchWiki&lt;/a>, which is comprehensive and practical.&lt;/p>
+&lt;h2 id="solve-the-first-condition">Solve the First Condition&lt;/h2>
+&lt;p>To deal with those few but annoying secrets, we can use &lt;code>sed&lt;/code> to replace the original secrets with encrypted code. For example, we have a file whose content look like this:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-plain" data-lang="plain">&lt;span class="line">&lt;span class="cl">char * pass = &amp;#34;notapassword&amp;#34;;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">printf(&amp;#34;What&amp;#39;s your name?&amp;#34;);
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">printf(&amp;#34;My name is %s.&amp;#34;, name);
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>We want to change the string &lt;code>notapassword&lt;/code> in the &lt;code>first&lt;/code> line to an encrypted string which can only be decrypted by ourselves. What should we do?&lt;/p>
+&lt;h3 id="encrypt-secrets">Encrypt Secrets&lt;/h3>
+&lt;h4 id="first-get-the-secret-needed-to-be-encrypted">First, Get the secret needed to be encrypted&lt;/h4>
+&lt;p>To get the secret string, we can either manually copy the content if we can ensure that it will not change in the later update or using &lt;code>sed&lt;/code> command. Here I&amp;rsquo;d like to briefly introduce the second option.&lt;/p>
+&lt;p>If your match regex is robust(deal with all input and only output a single pattern), like this regex:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">char &lt;span class="se">\*&lt;/span> &lt;span class="nv">pass&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;\(.*\)&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Then the following command will only print out the single password &lt;code>notapassword&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">sed -n &lt;span class="s1">&amp;#39;s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/\1/p&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># test it with:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># printf &amp;#39;char * pass = &amp;#34;notapassword&amp;#34;;\n&amp;#34;hello&amp;#34;\n&amp;#34;world&amp;#34;\n&amp;#39; | sed -n &amp;#39;s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/\1/p&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>or If you want to restrict the output to a specific range, you can execute the following command:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">sed -n &lt;span class="s1">&amp;#39;1,3s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/\1/p&amp;#39;&lt;/span> &lt;span class="c1"># processing input is 1st to 3st lines&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">sed -n &lt;span class="s1">&amp;#39;1s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/\1/p&amp;#39;&lt;/span> &lt;span class="c1"># processing input is the first line&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h4 id="second-encrypt-the-secret-using-gpg-and-base64">Second, encrypt the secret using GPG and base64&lt;/h4>
+&lt;p>Continuing with the above example, here we already have the secret string &lt;code>notapassword&lt;/code>, we then need to encrypt it into a non-breaking string:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;notapassword&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> gpg -ea -r 389582ABC15D64CCFB74D82F934AE9B6B6E9FF34
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Note &lt;code>389582ABC15D64CCFB74D82F934AE9B6B6E9FF34&lt;/code> is the &lt;code>keyid&lt;/code> of the key which you want to use to encrypt the string. Toe know your &lt;code>keyid&lt;/code>, please execute command &lt;code>gpg --list-keys&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ gpg --list-keys
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/home/zarkli/.gnupg/pubring.kbx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-------------------------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pub rsa3072 2023-01-06 &lt;span class="o">[&lt;/span>SC&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> 389582ABC15D64CCFB74D82F934AE9B6B6E9FF34
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">uid &lt;span class="o">[&lt;/span>ultimate&lt;span class="o">]&lt;/span> Ziqi Yang &amp;lt;mr.ziqiyang@gmail.com&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">sub rsa3072 2023-01-06 &lt;span class="o">[&lt;/span>E&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Since we use &lt;code>gpg&lt;/code> to encrypt the string(actually use the public key to encrypt string), we can confirm that unless our private key has leaked out, only ourselves can decrypt the string.&lt;/p>
+&lt;p>Now that we have gotten the encrypted string, which should be like:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-plain" data-lang="plain">&lt;span class="line">&lt;span class="cl">-----BEGIN PGP MESSAGE-----
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">hQGMA/6ct2lNSe5lAQv+Ik4O4O6gBT8rVDPS/96xHYGUxeokFPKEgrl9QQiAjSTY
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">D9wcmbxLe9319fI05dO6oJSsam9dgjUKBt42M4PkRjHX3PwZex+O3TYmrxo3zFfg
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">S4RWxGp2yWJ0/7wbILj1bFLo3bg3LKkkDmPZzK5KWosb0N0G/lR+mvzzDzm6yVYw
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">e8oR3vs/UefPxF0LiOo9kD4vTI0MgGb6i9dcgLbg08TspeDwiAcStH8QkQFnH8N/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ZQgK1mlblccpTUTsVOuUsslgw/sXpElbBUBUS6ftOzVlqbQMJR0lWYJzl5t/sz+a
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">4FqkINYp55mQpdpbaTBZ32c8BQvCK6HDZLFc20rhQIg7KPraiDzboHBQIc7pWmml
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">6QyrkZAxyh3GORuiSPtk74JuUHfO9NbGWn8kwBhkIyR7ecd6BGQYjvsRUW3385Vb
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">4DZd5rf2j1cVTlx854uwkmb6KE+5bmcjUd/CYcJ1oDPLNQcPBJYZ2wdojnvCJBAV
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">nnfzy1kAv+eYlUYtl2qS0kgBIe0B8h/cUU2wsWf4mCukT7aBRjdJH0pWjZrkrTUX
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">urhaA1bQuYSERtQ5DsAxh0TGvXLp4G1y8Hg5J3d7YPSTBc+b/cynG/A=
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">=xiNF
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-----END PGP MESSAGE-----
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>To get one line string, we can either extract the content in the middle of the encrypted data, or use &lt;code>base64&lt;/code> algorithm to encrypt it. I will introduce the second method.&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;notapassword&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> gpg -ea -r 389582ABC15D64CCFB74D82F934AE9B6B6E9FF34 &lt;span class="p">|&lt;/span> base64 -w &lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>-w 0&lt;/code> means don&amp;rsquo;t add line wrap in the &lt;code>base64&lt;/code> encrypted data. By default, &lt;code>base64&lt;/code> will add a line wrap after every 76 characters.&lt;/p>
+&lt;h4 id="third-replace-the-secret-with-the-encrypted-string-dot">Third, replace the secret with the encrypted string.&lt;/h4>
+&lt;p>We can use a variable to store the previous encrypted string, and the insert the content into the original place.&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">sed &lt;span class="s1">&amp;#39;s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/char \* pass = &amp;#34;&amp;#39;&lt;/span>&lt;span class="nv">$a&lt;/span>&lt;span class="s1">&amp;#39;&amp;#34;;/&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># test it with:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># a=$(echo &amp;#34;notapassword&amp;#34; | gpg -ea -r 389582ABC15D64CCFB74D82F934AE9B6B6E9FF34 | base64 -w 0)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># printf &amp;#39;char * pass = &amp;#34;notapassword&amp;#34;;\n&amp;#34;hello&amp;#34;\n&amp;#34;world&amp;#34;\n&amp;#39; | sed &amp;#39;s/char \* pass = &amp;#34;\(.*\)&amp;#34;;/char \* pass = &amp;#34;&amp;#39;$a&amp;#39;&amp;#34;;/&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Note that under bash environment, string between single quote is raw(e.g. &lt;code>'$a'&lt;/code> means exactly &lt;code>'$a'&lt;/code> ), and if you want to insert variables into the string, use nested single quote(e.g. &lt;code>''$a''&lt;/code> means &lt;code>'hello'&lt;/code> if &lt;code>$a&lt;/code> equals to &lt;code>'hello'&lt;/code>).&lt;/p>
+&lt;h4 id="sidenote-decryption">Sidenote: Decryption&lt;/h4>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;notapassword&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> gpg -ea -r 389582ABC15D64CCFB74D82F934AE9B6B6E9FF34 &lt;span class="p">|&lt;/span> base64 -w &lt;span class="m">0&lt;/span> &lt;span class="p">|&lt;/span> base64 -d &lt;span class="p">|&lt;/span> gpg -d
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="automate-dot-files-management-workflow">Automate Dot Files Management Workflow&lt;/h3>
+&lt;p>Please refer to &lt;a class="link" href="https://dotdrop.readthedocs.io/en/latest/howto/sensitive-dotfiles/" target="_blank" rel="noopener"
+>Handle secrets&lt;/a> and &lt;a class="link" href="https://dotdrop.readthedocs.io/en/latest/config/config-transformations/" target="_blank" rel="noopener"
+>Transformations entry&lt;/a> sections of &lt;code>dotdrop&lt;/code>.&lt;/p>
+&lt;blockquote>
+&lt;p>Side Note: For write transformations, {0} and {1} in the &amp;rsquo;transformations entry&amp;rsquo; section means the source file path and the temporary file path. The temporary file will be firstly copied from source file, and then you can modify it in the script. Afterward dotdrop will import it into your repo.&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="second-condition">Second Condition&lt;/h2>
+&lt;p>I have no energy to write more (&lt;code>____&lt;/code>). Please refer to the first condition.&lt;/p>
+&lt;h2 id="links">Links&lt;/h2>
+&lt;h3 id="gpg">GPG&lt;/h3>
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://wiki.archlinux.org/title/GnuPG" target="_blank" rel="noopener"
+>GnuPG - ArchWiki&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://disjoint.ca/til/2017/09/23/gpg-encrypting-a-string-into-another-single-line-string/" target="_blank" rel="noopener"
+>GPG encrypting a string into another single-line string&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;h3 id="dotdrop-docs">DotDrop Docs&lt;/h3>
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://dotdrop.readthedocs.io/en/latest/howto/sensitive-dotfiles/" target="_blank" rel="noopener"
+>Handle secrets&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://dotdrop.readthedocs.io/en/latest/config/config-transformations/" target="_blank" rel="noopener"
+>Transformations entry&lt;/a>&lt;/li>
+&lt;/ol></description></item><item><title>Risc-V Learning Summary</title><link>https://blog.animer.live/posts/risc-v-learning-summary/</link><pubDate>Wed, 04 Jan 2023 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/risc-v-learning-summary/</guid><description>&lt;p>Recently, I self-learned the &lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/su20/#by-week" target="_blank" rel="noopener"
+>cs61c(su20)&lt;/a> class, which requires you to write a &lt;code>risc-v&lt;/code> program to make a simple neural network in the project 2. It could be annoying that you write some bug in the assembly since the debug condition is frustrating. After all, through the project I learned a lot about risc-v, especially the calling conventions(at the beginning I haven&amp;rsquo;t paid much attention to it, and it had really caused a lot of problems to my work). After all, I summarized some things that seem important to risc-v assembly coding.&lt;/p>
+&lt;h2 id="calling-conventions">Calling Conventions&lt;/h2>
+&lt;p>It is very important to assembly coding. To make things work properly, you should follow calling conventions, especially when your project grows bigger and bigger.&lt;/p>
+&lt;h3 id="the-caller-s-responsibility">The Caller&amp;rsquo;s Responsibility&lt;/h3>
+&lt;p>The caller should manage its temporary variables like &lt;code>t0&lt;/code>, &lt;code>a0&lt;/code> and &lt;code>ra&lt;/code>. Since these variables are used for temporary purposes and in many cases many temporary variables are randomly used, the callee have no responsibility to save the caller&amp;rsquo;s temporary variables, which makes variable management easy.&lt;br />
+When the caller calls a function, make sure you have stored those temporary variables which carries information through the processes. The following demo demonstrates the principle:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># condition: the special value &amp;#39;1&amp;#39; needed to be used after calling a function
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">## good example
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">li&lt;/span> &lt;span class="no">t0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">mv&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">t0&lt;/span> &lt;span class="c1"># save t0 to s1, or save it to the stack
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">jal&lt;/span> &lt;span class="no">function&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># use s1
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">## bad example
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">li&lt;/span> &lt;span class="no">t0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">jal&lt;/span> &lt;span class="no">function&lt;/span> &lt;span class="c1"># may change t0
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># use t0
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="the-callee-s-responsibility">The Callee&amp;rsquo;s Responsibility&lt;/h3>
+&lt;p>The callee should save the long-life variables(like &lt;code>s0&lt;/code>) before doing its work, and revert them after the work before return. &lt;br />
+However, there are many long-life variables(12 variables&amp;rsquo; name begins with the character &amp;rsquo;s&amp;rsquo;), should we save all of them? Absolutely no. You only need to save those variables that will be used in the following callee&amp;rsquo;s work. For example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="nl">function:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">addi&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="p">-&lt;/span>&lt;span class="mi">12&lt;/span> &lt;span class="c1"># you can write the size in the final cause sometimes you need to use
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1"># more long-life variables than you decided at the beginning
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">sw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">sw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">sw&lt;/span> &lt;span class="no">ra&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1"># usually save ra along with s-variables is a good practice
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># your work
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">lw&lt;/span> &lt;span class="no">ra&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">sp&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1"># usually save ra along with s-variables is a good practice
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">addi&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sp&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">12&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="multiple-file-example">Multiple File Example&lt;/h2>
+&lt;p>&lt;code>main&lt;/code> file&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="na">.import&lt;/span> &lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">src&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">write_matrix.s&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.import&lt;/span> &lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">..&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">src&lt;/span>&lt;span class="err">/&lt;/span>&lt;span class="no">utils.s&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">m0:&lt;/span> &lt;span class="na">.word&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">6&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">7&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">9&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">file_path:&lt;/span> &lt;span class="na">.asciiz&lt;/span> &lt;span class="s">&amp;#34;outputs/test_write_matrix/student_write_outputs.bin&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.text&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">main:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">la&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">m0&lt;/span> &lt;span class="c1"># poiner to int array
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">la&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">file_path&lt;/span> &lt;span class="c1"># string
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>function&lt;/code> file&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#define c_printHex 34
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># ecall wrappers
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="na">.globl&lt;/span> &lt;span class="no">print_int&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_str&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">atoi&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">sbrk&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">exit&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_char&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fopen&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fread&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fwrite&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fclose&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">exit2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">fflush&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">ferror&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_hex&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># helper functions
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="na">.globl&lt;/span> &lt;span class="no">file_error&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_int_array&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">malloc&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">free&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">print_num_alloc_blocks&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">num_alloc_blocks&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.data&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">error_string:&lt;/span> &lt;span class="na">.string&lt;/span> &lt;span class="s">&amp;#34;This library file should not be directly called!&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">.text&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Exits if you run this file
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nl">main:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">la&lt;/span> &lt;span class="no">a1&lt;/span> &lt;span class="no">error_string&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">jal&lt;/span> &lt;span class="no">print_str&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">li&lt;/span> &lt;span class="no">a1&lt;/span> &lt;span class="mi">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">jal&lt;/span> &lt;span class="no">exit2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">print_int:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nl">print_char:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1"># code
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nf">ret&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>It should be noticed that the exposing function(label) only exposed its label name and address (my understanding), and its end is the &lt;code>ret&lt;/code>, however the compiler doesn&amp;rsquo;t know where its end is.&lt;/p>
+&lt;h2 id="pass-command-line-arguments-to-the-program">Pass Command Line Arguments to the Program&lt;/h2>
+&lt;p>If you don&amp;rsquo;t change a-beginning variables at the beginning, then &lt;code>a0&lt;/code> is &lt;code>argc&lt;/code> (&lt;code>int&lt;/code> type), and &lt;code>a1&lt;/code> is &lt;code>argv&lt;/code> (&lt;code>char **&lt;/code> type). RISC-V handles command line arguments in the same way as C, which means &lt;code>a1[0]&lt;/code> is the program itself. You can load command line arguments like this:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># a1: char **, and char * is address, costs for 4 bytes
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 0(a1) stands for the program itself
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">lw&lt;/span> &lt;span class="no">s0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">4&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">8&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">12&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">lw&lt;/span> &lt;span class="no">s3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">16&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="no">a1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="ecall-the-environmental-calls">Ecall - The Environmental Calls&lt;/h2>
+&lt;p>You can refer to &lt;a class="link" href="https://github.com/kvakil/venus/wiki/Environmental-Calls" target="_blank" rel="noopener"
+>venus - Environmental Call&lt;/a>. The starter code for the project2 is also a good example: &lt;a class="link" href="https://github.com/61c-teach/su20-proj2-starter/blob/master/src/utils.s" target="_blank" rel="noopener"
+>https://github.com/61c-teach/su20-proj2-starter/blob/master/src/utils.s&lt;/a>&lt;/p>
+&lt;h2 id="resources">Resources&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources-pdfs/riscvcard.pdf" target="_blank" rel="noopener"
+>resc-v reference&lt;/a> and &lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources-pdfs/riscvcard_large.pdf" target="_blank" rel="noopener"
+>large version&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://jemu.oscc.cc/" target="_blank" rel="noopener"
+>unoffical risc-v manual&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://github.com/kvakil/venus/wiki" target="_blank" rel="noopener"
+>venus wiki&lt;/a> &lt;br />
+it contains useful information like &lt;code>Assembler Directives&lt;/code> and &lt;code>Environmental Calls&lt;/code>&lt;/li>
+&lt;li>&lt;a class="link" href="https://inst.eecs.berkeley.edu/~cs61c/sp21/resources/venus-reference" target="_blank" rel="noopener"
+>cs61c venus reference&lt;/a> mainly about &lt;code>venus&lt;/code> tool, but also contains some RISC-V knowledge&lt;/li>
+&lt;/ul></description></item><item><title>Switch to Wayland</title><link>https://blog.animer.live/posts/switch_to_wayland/</link><pubDate>Thu, 22 Dec 2022 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/switch_to_wayland/</guid><description>&lt;h2 id="installation">Installation&lt;/h2>
+&lt;p>I choose &lt;a class="link" href="https://github.com/hyprwm/Hyprland" target="_blank" rel="noopener"
+>hyprland&lt;/a> as my Wayland window manager(and compositor) which is based on &lt;code>wlroots&lt;/code>, it is a really new compositor with a lot of great features, and also it is pretty stable(according to the office). Here is the &lt;em>stars over time&lt;/em> charts for it:&lt;/p>
+&lt;figure>&lt;img src="https://starchart.cc/hyprwm/Hyprland.svg"
+alt="Figure 1: Hyprland Stars Over Time"/>&lt;figcaption>
+&lt;p>&lt;span class="figure-number">Figure 1: &lt;/span>Hyprland Stars Over Time&lt;/p>
+&lt;/figcaption>
+&lt;/figure>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># glfw-wayland is conflict with glfw-x11&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S hyprland-git xorg-xwayland xorg-xlsclients qt5-wayland glfw-wayland qt6-wayland
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S dunst wireplumber pipewire polkit-kde-agent xdg-desktop-portal-hyprland-git &lt;span class="c1"># must-have (from hyprland-wiki)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S wev &lt;span class="c1"># xev&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S wl-clipboard &lt;span class="c1"># xclip&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S wtype &lt;span class="c1"># xdotool&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="applications">applications&lt;/h3>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">paru -S hyprpaper &lt;span class="c1"># wallpaper manager under hyprland&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S rofi-lbonn-wayland-git &lt;span class="c1"># rofi under Wayland&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S waybar-hyprland-git &lt;span class="c1"># waybar hyprland (enhanced?)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S hyprpick &lt;span class="c1"># color picker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S grim slurp swappy &lt;span class="c1"># screenshot (swappy is a GUI annotation client for grim+slurp combination, which is enough for screenshot)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">paru -S gammastep &lt;span class="c1"># screen gamma, alternative for redshift&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="emacs-under-wayland">Emacs Under Wayland&lt;/h2>
+&lt;p>Please use Emacs with &lt;code>pgtk&lt;/code> (pure GTK) build to support Wayland. The 29 version of Emacs officially support build with &lt;code>pgtk&lt;/code> flag=. You can simply get it from AUR:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-Bash" data-lang="Bash">&lt;span class="line">&lt;span class="cl">paru -S emacs29-git
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="customization">Customization&lt;/h2>
+&lt;ol>
+&lt;li>cursor:
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://wiki.hyprland.org/FAQ/index.html#how-do-i-change-me-mouse-cursor" target="_blank" rel="noopener"
+>https://wiki.hyprland.org/FAQ/index.html#how-do-i-change-me-mouse-cursor&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://github.com/swaywm/sway/wiki/GTK-3-settings-on-Wayland" target="_blank" rel="noopener"
+>https://github.com/swaywm/sway/wiki/GTK-3-settings-on-Wayland&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="problems">Problems&lt;/h2>
+&lt;ol>
+&lt;li>&lt;code>nm-applet&lt;/code> not appears on Waybar tray (at least for me), so I use &lt;code>nmtui&lt;/code> in terminal to manage my network connection instead.&lt;/li>
+&lt;li>&lt;code>megasync&lt;/code> not working properly&lt;/li>
+&lt;li>&lt;code>jetbrains-toolbox&lt;/code> not appears on the Waybar tray.&lt;/li>
+&lt;/ol>
+&lt;h2 id="links">Links:&lt;/h2>
+&lt;h3 id="applications">Applications&lt;/h3>
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://arewewaylandyet.com/" target="_blank" rel="noopener"
+>https://arewewaylandyet.com/&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://wiki.hyprland.org/Useful-Utilities/" target="_blank" rel="noopener"
+>https://wiki.hyprland.org/Useful-Utilities/&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://github.com/swaywm/sway/wiki/Useful-add-ons-for-sway" target="_blank" rel="noopener"
+>https://github.com/swaywm/sway/wiki/Useful-add-ons-for-sway&lt;/a>&lt;/li>
+&lt;/ol>
+&lt;h3 id="guides">Guides&lt;/h3>
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://www.fosskers.ca/en/blog/wayland" target="_blank" rel="noopener"
+>Full Wayland Setup on Arch Linux&lt;/a>&lt;/li>
+&lt;/ol></description></item><item><title>Emacs lsp-java Project Settings</title><link>https://blog.animer.live/posts/emacs-lsp-java-project-settings/</link><pubDate>Wed, 21 Dec 2022 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/emacs-lsp-java-project-settings/</guid><description>&lt;p>&lt;code>lsp-java&lt;/code> is an awesome package for &lt;code>lsp-mode&lt;/code> to open a java project. However, after some testing, I found it
+has difficulty in importing third party libraries with &lt;span class="underline">pure&lt;/span> java project(not use maven, Gradle). Moreover, it
+only has a limited ability to interact with a Gradle project. However, it has great support for &lt;code>maven&lt;/code> project, which
+means we can use maven to import third party java libraries.
+This article will focus on import a local library by maven.&lt;/p>
+&lt;h2 id="initialize-a-project">Initialize a project&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mvn -B archetype:generate -DgroupId&lt;span class="o">=&lt;/span>PacMan -DartifactId&lt;span class="o">=&lt;/span>PacMan -Darchet
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">ypeArtifactId&lt;/span>&lt;span class="o">=&lt;/span>maven-archetype-quickstart -DarchetypeVersion&lt;span class="o">=&lt;/span>1.4
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This command will create a folder named &lt;code>PacMan=(=artifactId&lt;/code>), where there is folder called &lt;code>src&lt;/code>, and its structure is like:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-mysql" data-lang="mysql">&lt;span class="line">&lt;span class="cl">&lt;span class="err">├──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">src&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">├──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">main&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">└──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">java&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">│  &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">└──&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nf">PacMan&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">groudId&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If your &lt;code>groupId&lt;/code> is &amp;ldquo;com.pacman.xx&amp;rdquo;, then the directory structure may be like:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">├── src
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   ├── main
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   │   └── java
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│   │   └── com
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> └── pacman
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> └── xx
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>In our example, you can write code in the &lt;code>pacman&lt;/code> folder.&lt;/p>
+&lt;h2 id="specify-java-version">Specify java version:&lt;/h2>
+&lt;p>edit &lt;code>pom.xml&lt;/code> file in the project root directory&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;project&lt;/span> &lt;span class="na">xmlns=&lt;/span>&lt;span class="s">&amp;#34;http://maven.apache.org/POM/4.0.0&amp;#34;&lt;/span> &lt;span class="na">xmlns:xsi=&lt;/span>&lt;span class="s">&amp;#34;http://www.w3.org/2001/XMLSchema-instance&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">xsi:schemaLocation=&lt;/span>&lt;span class="s">&amp;#34;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- ... --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;properties&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;project.build.sourceEncoding&amp;gt;&lt;/span>UTF-8&lt;span class="nt">&amp;lt;/project.build.sourceEncoding&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;maven.compiler.source&amp;gt;&lt;/span>17&lt;span class="nt">&amp;lt;/maven.compiler.source&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;maven.compiler.target&amp;gt;&lt;/span>17&lt;span class="nt">&amp;lt;/maven.compiler.target&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/properties&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c">&amp;lt;!-- ... --&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/project&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="add-third-party-libriary">Add third party libriary&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&amp;lt;project &lt;span class="nv">xmlns&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://maven.apache.org/POM/4.0.0&amp;#34;&lt;/span> xmlns:xsi&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://www.w3.org/2001/XMLSchema-instance&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> xsi:schemaLocation&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd&amp;#34;&lt;/span>&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;dependencies&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;dependency&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;groupId&amp;gt;ucd.comp2011j&amp;lt;/groupId&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;artifactId&amp;gt;game-engine&amp;lt;/artifactId&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;version&amp;gt;1.00&amp;lt;/version&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;scope&amp;gt;system&amp;lt;/scope&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;systemPath&amp;gt;&lt;span class="si">${&lt;/span>&lt;span class="nv">basedir&lt;/span>&lt;span class="si">}&lt;/span>/libs/COMP2011J.Game.Engine.jar&amp;lt;/systemPath&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;/dependency&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;/dependencies&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;lt;!-- ... --&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;/project&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Note that &lt;code>${basedir}&lt;/code> stands for the directory that &lt;code>pom.xml&lt;/code> located.&lt;/p>
+&lt;h2 id="run-project">Run Project:&lt;/h2>
+&lt;p>create a &lt;code>Makefile&lt;/code> in the project root directory:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-makefile" data-lang="makefile">&lt;span class="line">&lt;span class="cl">&lt;span class="nf">all&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="n">compile&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">compile&lt;/span>&lt;span class="o">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> mvn package
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> java -cp &lt;span class="s2">&amp;#34;target/PacMan-1.0-SNAPSHOT.jar:&amp;lt;your third party libriary relative path&amp;gt;&amp;#34;&lt;/span> PacMan.GameStart &lt;span class="c1"># &amp;lt;Package Name&amp;gt;.&amp;lt;Class Name&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nf">clean&lt;/span>&lt;span class="o">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> mvn clean
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Use command &lt;code>make&lt;/code> to run, and &lt;code>make clean&lt;/code> to clean&lt;/p>
+&lt;p>In &lt;code>doom emacs&lt;/code>, you can type &lt;code>&amp;lt;SPC&amp;gt;pR&lt;/code> and enter &lt;code>make&lt;/code> to run the project&lt;/p></description></item><item><title>If Else In Sed</title><link>https://blog.animer.live/posts/if-else-in-sed/</link><pubDate>Wed, 21 Dec 2022 00:00:00 +0800</pubDate><guid>https://blog.animer.live/posts/if-else-in-sed/</guid><description>&lt;p>use &lt;code>t&lt;/code> or &lt;code>T&lt;/code> to control the sed workflow.&lt;a class="link" href="https://getdocs.org/Sed/Branching-and-flow-control" target="_blank" rel="noopener"
+>(more&lt;/a>)&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">sed -i &lt;span class="s2">&amp;#34;s/animations = true/animations = false/;t;\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2"> s/animations = false/animations = true/&amp;#34;&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$picom_config&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="reference">Reference&lt;/h2>
+&lt;ol>
+&lt;li>&lt;a class="link" href="https://stackoverflow.com/questions/68320533/how-to-toggle-a-comment-in-a-line-using-sed#answer-72615471" target="_blank" rel="noopener"
+>How to toggle a comment in a line using sed&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://getdocs.org/Sed/Branching-and-flow-control" target="_blank" rel="noopener"
+>Sed/Branching-and-flow-control&lt;/a>&lt;/li>
+&lt;/ol></description></item><item><title>Doom Emacs Set Chinese Font</title><link>https://blog.animer.live/posts/doom_emacs_chinese_font/</link><pubDate>Mon, 14 Nov 2022 00:00:00 +0000</pubDate><guid>https://blog.animer.live/posts/doom_emacs_chinese_font/</guid><description>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-elisp" data-lang="elisp">&lt;span class="line">&lt;span class="cl">&lt;span class="p">(&lt;/span>&lt;span class="nb">setq&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nv">doom-font&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nf">font-spec&lt;/span> &lt;span class="nb">:family&lt;/span> &lt;span class="s">&amp;#34;FiraCode Nerd Font&amp;#34;&lt;/span> &lt;span class="nb">:size&lt;/span> &lt;span class="mi">34&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">;; :wight light&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">;; don&amp;#39;t set size for doom-unicode-font, or the size won&amp;#39;t be changed&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nv">doom-unicode-font&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nf">font-spec&lt;/span> &lt;span class="nb">:family&lt;/span> &lt;span class="s">&amp;#34;LXGW WenKai&amp;#34;&lt;/span>&lt;span class="p">))&lt;/span> &lt;span class="c1">;; CJK font&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item><item><title>Archives</title><link>https://blog.animer.live/archives/</link><pubDate>Sun, 06 Mar 2022 00:00:00 +0000</pubDate><guid>https://blog.animer.live/archives/</guid><description/></item><item><title>Links</title><link>https://blog.animer.live/links/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://blog.animer.live/links/</guid><description>&lt;p>Here are my fantastic projects:&lt;/p></description></item><item><title>Search</title><link>https://blog.animer.live/search/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://blog.animer.live/search/</guid><description/></item></channel></rss>
