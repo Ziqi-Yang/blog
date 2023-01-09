@@ -2,7 +2,7 @@
 #+date:  <2023-01-04 Wed>
 #+hugo_lastmod: 2023-01-04 Wed
 #+hugo_base_dir: ../
-#+hugo_categories: assembly
+#+hugo_categories: Assembly
 #+hugo_tags: risc-v assembly
 #+description: Enjoying and Hating assembly.
 

@@ -15,7 +15,6 @@ sed -i "s/animations = true/animations = false/;t;\
     s/animations = false/animations = true/" "$picom_config"
 ```
 
-
 ## Reference {#reference}
 
 1.  [How to toggle a comment in a line using sed](https://stackoverflow.com/questions/68320533/how-to-toggle-a-comment-in-a-line-using-sed#answer-72615471)

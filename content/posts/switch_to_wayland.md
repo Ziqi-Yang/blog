@@ -4,7 +4,7 @@ author = ["Zarkli Leonardo"]
 description = "Switch to Wayland"
 date = 2022-12-22T00:00:00+08:00
 tags = ["wayland", "rice"]
-categories = ["rice"]
+categories = ["Rice"]
 draft = false
 +++
 

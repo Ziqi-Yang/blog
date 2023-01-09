@@ -1,7 +1,7 @@
 #+title: Switch to Wayland
 #+date:  <2022-12-22 Thu>
 #+hugo_base_dir: ../
-#+hugo_categories: rice
+#+hugo_categories: Rice
 #+hugo_tags: wayland rice
 #+description: Switch to Wayland
 

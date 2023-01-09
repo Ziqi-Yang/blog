@@ -10,5 +10,6 @@
 Use =SPC-m-e-H-h= to export blog.
 
 * Current Writing
-- [ ] Hide Secrets In Your Dotfiles
+- [ ] AUR Contribution Guide
+- [ ] Hide Secrets in Your Dot Files on Public Repository
 - [ ] Read Baby Git Source Code
