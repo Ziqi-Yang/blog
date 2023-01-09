@@ -16,6 +16,14 @@ url = "https://github.com/Ziqi-Yang"
 icon = "brand-github"
 
 [[social]]
+identifier = "archlinux"
+name = "AUR"
+url = "https://aur.archlinux.org/packages?K=Zarkli&SeB=m"
+
+[social.params]
+icon = "archlinux"
+
+[[social]]
 identifier = "rss"
 name = "Rss"
 url = "posts/index.xml"

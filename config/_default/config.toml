@@ -1,8 +1,8 @@
 # Change baseurl before deplohttps://ziqi-yang.github.io/blog/y
 baseurl = "https://blog.animer.live/"
 languageCode = "en-us"
-paginate = 5
-title = "Hugo Theme Stack Starter"
+paginate = 10
+title = "MeowKing"
 
 # Theme i18n support
 # Available values: en, fr, id, ja, ko, pt-br, zh-cn, zh-tw, es, de, nl, it, th, el, uk, ar
